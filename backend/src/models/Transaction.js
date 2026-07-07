@@ -12,7 +12,7 @@ const transactionSchema = new mongoose.Schema(
 
     type: {
       type: String,
-      enum: ['deposit', 'transfer', 'qr_payment'],
+      enum: ['deposit', 'transfer', 'qr_payment', 'voucher'],
       required: true,
     },
     direction: { type: String, enum: ['credit', 'debit'], required: true },

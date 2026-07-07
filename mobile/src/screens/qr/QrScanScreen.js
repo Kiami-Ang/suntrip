@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Screen from '../../components/Screen';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
@@ -12,6 +13,7 @@ import colors, { radius, spacing, font } from '../../theme/colors';
 
 export default function QrScanScreen({ navigation, route }) {
   const { user, patchUser } = useAuth();
+  const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [payment, setPayment] = useState(null);
@@ -124,10 +126,29 @@ export default function QrScanScreen({ navigation, route }) {
     );
   }
 
+  // Alternador entre câmara e código (segmented control)
+  const ModeToggle = () => (
+    <View style={styles.toggle}>
+      <Pressable
+        style={[styles.toggleBtn, !manualMode && styles.toggleBtnActive]}
+        onPress={() => { setManualMode(false); setError(''); }}
+      >
+        <Text style={[styles.toggleText, !manualMode && styles.toggleTextActive]}>Câmara</Text>
+      </Pressable>
+      <Pressable
+        style={[styles.toggleBtn, manualMode && styles.toggleBtnActive]}
+        onPress={() => { setManualMode(true); setError(''); }}
+      >
+        <Text style={[styles.toggleText, manualMode && styles.toggleTextActive]}>Código</Text>
+      </Pressable>
+    </View>
+  );
+
   // Pagamento por código (entrada manual, sem câmara)
   if (manualMode) {
     return (
       <Screen scroll>
+        <ModeToggle />
         <Text style={styles.permTitle}>Pagar com código</Text>
         <Text style={[styles.info, { marginBottom: spacing.xl }]}>
           Escreve o código que aparece no QR (ex: ST-1A2B3C4D).
@@ -141,12 +162,6 @@ export default function QrScanScreen({ navigation, route }) {
           error={error}
         />
         <Button title="Verificar código" onPress={() => verifyCode(manualCode)} loading={verifying} />
-        <Button
-          title="Ler com a câmara"
-          variant="ghost"
-          onPress={() => { setManualMode(false); setError(''); }}
-          style={{ marginTop: spacing.sm }}
-        />
       </Screen>
     );
   }
@@ -187,13 +202,22 @@ export default function QrScanScreen({ navigation, route }) {
             <Text style={styles.rescanText}>Tocar para ler de novo</Text>
           </Pressable>
         ) : null}
-        <Pressable style={styles.manualBtn} onPress={() => setManualMode(true)}>
-          <Text style={styles.manualBtnText}>Introduzir código manualmente</Text>
+      </View>
+
+      {/* Barra superior: alternador câmara/código + fechar (respeita a status bar) */}
+      <View style={[styles.topBar, { top: insets.top + 10 }]}>
+        <View style={styles.toggleDark}>
+          <Pressable style={[styles.toggleBtn, styles.toggleBtnActive]}>
+            <Text style={[styles.toggleText, styles.toggleTextActive]}>Câmara</Text>
+          </Pressable>
+          <Pressable style={styles.toggleBtn} onPress={() => setManualMode(true)}>
+            <Text style={styles.toggleText}>Código</Text>
+          </Pressable>
+        </View>
+        <Pressable style={styles.close} onPress={() => navigation.goBack()}>
+          <Text style={styles.closeText}>Fechar</Text>
         </Pressable>
       </View>
-      <Pressable style={styles.close} onPress={() => navigation.goBack()}>
-        <Text style={styles.closeText}>Fechar</Text>
-      </Pressable>
     </View>
   );
 }
@@ -205,10 +229,16 @@ const styles = StyleSheet.create({
   scanHint: { color: '#fff', marginTop: spacing.xl, fontSize: font.size.md, fontWeight: font.weight.semibold },
   rescan: { marginTop: spacing.lg, backgroundColor: colors.yellow, paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderRadius: radius.full },
   rescanText: { color: colors.navy, fontWeight: font.weight.bold },
-  manualBtn: { position: 'absolute', bottom: 48, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderRadius: radius.full, borderWidth: 1, borderColor: colors.border },
-  manualBtnText: { color: '#fff', fontWeight: font.weight.semibold, fontSize: font.size.sm },
-  close: { position: 'absolute', top: 50, right: 20, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.full },
+  topBar: { position: 'absolute', left: 20, right: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  close: { backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.full },
   closeText: { color: '#fff', fontWeight: font.weight.semibold },
+  // Alternador câmara/código
+  toggle: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.full, padding: 4, marginBottom: spacing.xl, borderWidth: 1, borderColor: colors.border },
+  toggleDark: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: radius.full, padding: 4, borderWidth: 1, borderColor: colors.border },
+  toggleBtn: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.full },
+  toggleBtnActive: { backgroundColor: colors.yellow },
+  toggleText: { color: colors.muted, fontWeight: font.weight.semibold, fontSize: font.size.sm },
+  toggleTextActive: { color: colors.navy },
   info: { color: colors.muted, textAlign: 'center', fontSize: font.size.sm, paddingHorizontal: spacing.lg },
   permTitle: { color: colors.white, fontSize: font.size.xl, fontWeight: font.weight.bold, textAlign: 'center', marginBottom: spacing.sm },
   confirmCard: { backgroundColor: colors.oceanDeep, borderRadius: radius.xl, padding: spacing.xl, alignItems: 'center', marginBottom: spacing.lg },

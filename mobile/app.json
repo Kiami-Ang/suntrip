@@ -22,7 +22,11 @@
         "backgroundColor": "#fcc103",
         "foregroundImage": "./assets/adaptive-icon.png"
       },
-      "permissions": ["CAMERA"]
+      "permissions": [
+        "CAMERA",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -37,8 +41,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": ""
+        "projectId": "fe7848fd-4c7d-4a15-b663-381bb7982cc0"
       }
-    }
+    },
+    "owner": "kiami12"
   }
 }

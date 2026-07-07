@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DashboardScreen from '../screens/DashboardScreen';
 import WalletScreen from '../screens/WalletScreen';
 import QrHubScreen from '../screens/qr/QrHubScreen';
@@ -19,6 +20,10 @@ const ICONS = {
 };
 
 export default function MainTabs() {
+  const insets = useSafeAreaInsets();
+  // Espaço reservado para a barra de navegação do Android (botões/gestos)
+  const bottomInset = Math.max(insets.bottom, 8);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -28,8 +33,8 @@ export default function MainTabs() {
         tabBarStyle: {
           backgroundColor: colors.navyLight,
           borderTopColor: colors.border,
-          height: 62,
-          paddingBottom: 8,
+          height: 60 + bottomInset,
+          paddingBottom: bottomInset,
           paddingTop: 6,
         },
         tabBarLabelStyle: { fontSize: font.size.xs, fontWeight: font.weight.medium },

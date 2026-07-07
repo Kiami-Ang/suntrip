@@ -4,9 +4,16 @@ import storage from './storage';
 
 const api = axios.create({
   baseURL: config.apiUrl,
-  timeout: 20000,
+  // Timeout alto: o servidor gratuito (Render) pode demorar ~50s a "acordar"
+  // depois de inatividade. Damos margem para o primeiro pedido não falhar.
+  timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
 });
+
+// Acorda o servidor cedo (não bloqueia nada, é "fire and forget").
+export const wakeServer = () => {
+  axios.get(`${config.baseUrl}/api/health`, { timeout: 60000 }).catch(() => {});
+};
 
 // Callback chamado quando a sessão expira de vez (refresh falha)
 let onUnauthorized = null;
@@ -58,7 +65,16 @@ api.interceptors.response.use(
 );
 
 // Extrai a mensagem de erro amigável da resposta do backend
-export const errorMessage = (error, fallback = 'Ocorreu um erro. Tente novamente.') =>
-  error?.response?.data?.message || (error?.message === 'Network Error' ? 'Sem ligação ao servidor' : fallback);
+export const errorMessage = (error, fallback = 'Ocorreu um erro. Tente novamente.') => {
+  if (error?.response?.data?.message) return error.response.data.message;
+  // Timeout ou falha de rede: normalmente o servidor está a iniciar.
+  if (error?.code === 'ECONNABORTED' || /timeout/i.test(error?.message || '')) {
+    return 'O servidor está a iniciar. Aguarde alguns segundos e tente novamente.';
+  }
+  if (error?.message === 'Network Error') {
+    return 'Sem ligação ao servidor. Verifique a internet e tente novamente.';
+  }
+  return fallback;
+};
 
 export default api;

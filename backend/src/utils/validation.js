@@ -52,9 +52,24 @@ const registerDriverSchema = z.object({
   professionalNotes: z.string().trim().optional().default(''),
 });
 
+const registerBusinessSchema = z.object({
+  businessName: z.string({ required_error: 'Nome do negócio é obrigatório' }).trim().min(2, 'Nome do negócio é obrigatório'),
+  name: nameSchema, // nome do responsável
+  email: emailSchema,
+  phone: phoneSchema,
+  password: passwordSchema,
+  businessNif: z.string().trim().optional().default(''),
+  businessCategory: z.string().trim().optional().default(''),
+  address: z.string().trim().optional().default(''),
+});
+
 const loginSchema = z.object({
   email: emailSchema,
   password: z.string({ required_error: 'Palavra-passe é obrigatória' }).min(1, 'Palavra-passe é obrigatória'),
+});
+
+const verifyEmailSchema = z.object({
+  code: z.string({ required_error: 'Código é obrigatório' }).trim().regex(/^\d{6}$/, 'Código deve ter 6 dígitos'),
 });
 
 module.exports = {
@@ -66,5 +81,7 @@ module.exports = {
   pinSchema,
   registerClientSchema,
   registerDriverSchema,
+  registerBusinessSchema,
   loginSchema,
+  verifyEmailSchema,
 };

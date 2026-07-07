@@ -87,6 +87,34 @@ export function AuthProvider({ children }) {
     [applySession]
   );
 
+  const registerBusiness = useCallback(
+    async (payload) => {
+      const { data } = await api.post('/auth/register/business', payload);
+      await applySession(data);
+      return data.user;
+    },
+    [applySession]
+  );
+
+  const verifyEmail = useCallback(async (code) => {
+    const { data } = await api.post('/auth/verify-email', { code });
+    if (data.user) {
+      setUser(data.user);
+      await storage.setUser(data.user);
+    }
+    return data.user;
+  }, []);
+
+  const resendCode = useCallback(async () => {
+    const { data } = await api.post('/auth/resend-code');
+    // Se o servidor não tem email configurado, devolve o utilizador já verificado.
+    if (data.user) {
+      setUser(data.user);
+      await storage.setUser(data.user);
+    }
+    return data;
+  }, []);
+
   const refreshUser = useCallback(async () => {
     const { data } = await api.get('/auth/me');
     setUser(data.user);
@@ -110,6 +138,9 @@ export function AuthProvider({ children }) {
     login,
     registerClient,
     registerDriver,
+    registerBusiness,
+    verifyEmail,
+    resendCode,
     logout,
     refreshUser,
     patchUser,

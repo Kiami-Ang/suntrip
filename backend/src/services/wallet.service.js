@@ -1,8 +1,19 @@
-const { randomUUID } = require('crypto');
+const { randomUUID, randomInt } = require('crypto');
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
+const RechargeVoucher = require('../models/RechargeVoucher');
 const { AppError } = require('../middleware/error');
+
+// Caracteres sem ambiguidade (sem 0/O/1/I) para códigos legíveis.
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function makeVoucherCode() {
+  let body = '';
+  for (let i = 0; i < 12; i += 1) body += CODE_CHARS[randomInt(0, CODE_CHARS.length)];
+  // Formato: SUN-XXXX-XXXX-XXXX
+  return `SUN-${body.slice(0, 4)}-${body.slice(4, 8)}-${body.slice(8, 12)}`;
+}
 
 /** Se `reference` já foi usada, devolve a transação existente (idempotência). */
 async function findByReference(reference) {
@@ -131,4 +142,86 @@ async function transfer({ sender, recipientId, amountCents, type = 'transfer', d
   }
 }
 
-module.exports = { deposit, transfer, findByReference };
+/**
+ * Gera N vouchers de recarga (admin). Cada voucher tem um código único.
+ */
+async function generateVouchers({ amountCents, quantity = 1, createdBy }) {
+  const batchId = randomUUID();
+  const qty = Math.min(Math.max(Number(quantity) || 1, 1), 100);
+  const created = [];
+
+  for (let i = 0; i < qty; i += 1) {
+    // Tenta até obter um código único (colisões são extremamente raras).
+    let voucher = null;
+    for (let attempt = 0; attempt < 5 && !voucher; attempt += 1) {
+      try {
+        voucher = await RechargeVoucher.create({
+          code: makeVoucherCode(),
+          amountCents,
+          createdBy,
+          batchId,
+        });
+      } catch (err) {
+        if (err.code !== 11000) throw err; // só repete em colisão de código
+      }
+    }
+    if (voucher) created.push(voucher);
+  }
+  return created;
+}
+
+/**
+ * Resgata um voucher de recarga — atómico (marca como usado + credita saldo).
+ */
+async function redeemVoucher(user, rawCode) {
+  const code = String(rawCode || '').trim().toUpperCase();
+  if (!code) throw new AppError('Introduza um código de recarga', 400);
+
+  const session = await mongoose.startSession();
+  try {
+    let out;
+    await session.withTransaction(async () => {
+      // Marca o voucher como usado só se ainda estiver ativo (impede uso duplo).
+      const voucher = await RechargeVoucher.findOneAndUpdate(
+        { code, status: 'active' },
+        { status: 'redeemed', redeemedBy: user._id, redeemedAt: new Date() },
+        { new: true, session }
+      );
+      if (!voucher) {
+        // Distingue "não existe" de "já usado" para mensagem clara.
+        const exists = await RechargeVoucher.findOne({ code }).session(session);
+        if (exists) throw new AppError('Este código já foi utilizado', 400);
+        throw new AppError('Código de recarga inválido', 400);
+      }
+
+      const updated = await User.findByIdAndUpdate(
+        user._id,
+        { $inc: { balanceCents: voucher.amountCents } },
+        { new: true, session }
+      );
+
+      const [tx] = await Transaction.create(
+        [
+          {
+            userId: user._id,
+            type: 'voucher',
+            direction: 'credit',
+            amountCents: voucher.amountCents,
+            balanceAfterCents: updated.balanceCents,
+            status: 'completed',
+            description: 'Recarga por voucher',
+            reference: `voucher:${voucher._id.toString()}`,
+          },
+        ],
+        { session }
+      );
+
+      out = { transaction: tx, balanceCents: updated.balanceCents, amountCents: voucher.amountCents };
+    });
+    return out;
+  } finally {
+    session.endSession();
+  }
+}
+
+module.exports = { deposit, transfer, findByReference, generateVouchers, redeemVoucher };

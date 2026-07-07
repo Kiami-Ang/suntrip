@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Screen from '../components/Screen';
 import Input from '../components/Input';
 import Button from '../components/Button';
@@ -8,30 +9,30 @@ import api, { errorMessage } from '../services/api';
 import { formatKz } from '../utils/format';
 import colors, { radius, spacing, font } from '../theme/colors';
 
-const PRESETS = [500, 1000, 2000, 5000, 10000];
-
 export default function DepositScreen({ navigation }) {
   const { patchUser } = useAuth();
-  const [amount, setAmount] = useState('');
+  const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async () => {
-    const value = Number(amount);
-    if (!value || value < 100) {
-      setError('Valor mínimo: 100 Kz');
+    const clean = code.trim().toUpperCase();
+    if (clean.length < 8) {
+      setError('Introduz um código de recarga válido');
       return;
     }
     setError('');
     setLoading(true);
     try {
-      const { data } = await api.post('/wallet/deposit', { amount: value });
+      const { data } = await api.post('/wallet/redeem', { code: clean });
       patchUser({ balance: data.balance });
-      Alert.alert('Saldo carregado', `Novo saldo: ${formatKz(data.balance)}`, [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      Alert.alert(
+        'Saldo carregado',
+        `Adicionaste ${formatKz(data.amount)}.\nNovo saldo: ${formatKz(data.balance)}`,
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
     } catch (err) {
-      setError(errorMessage(err, 'Não foi possível carregar'));
+      setError(errorMessage(err, 'Não foi possível recarregar'));
     } finally {
       setLoading(false);
     }
@@ -39,36 +40,36 @@ export default function DepositScreen({ navigation }) {
 
   return (
     <Screen scroll>
-      <Text style={styles.label}>Quanto queres carregar?</Text>
-      <Input
-        placeholder="0"
-        value={amount}
-        onChangeText={(t) => setAmount(t.replace(/[^0-9]/g, ''))}
-        keyboardType="number-pad"
-        error={error}
-        rightText="Kz"
-      />
-
-      <View style={styles.presets}>
-        {PRESETS.map((p) => (
-          <Pressable key={p} style={styles.preset} onPress={() => setAmount(String(p))}>
-            <Text style={styles.presetText}>{formatKz(p)}</Text>
-          </Pressable>
-        ))}
+      <View style={styles.hero}>
+        <Ionicons name="ticket" size={34} color={colors.yellow} />
+        <Text style={styles.heroTitle}>Recarregar com código</Text>
+        <Text style={styles.heroText}>
+          Introduz o código do teu voucher de recarga SunTrip para adicionar saldo à tua carteira.
+        </Text>
       </View>
 
-      <Button title="Carregar saldo" onPress={onSubmit} loading={loading} style={{ marginTop: spacing.xl }} />
+      <Input
+        label="Código de recarga"
+        placeholder="SUN-XXXX-XXXX-XXXX"
+        value={code}
+        onChangeText={(t) => setCode(t.toUpperCase())}
+        autoCapitalize="characters"
+        error={error}
+      />
+
+      <Button title="Recarregar" onPress={onSubmit} loading={loading} style={{ marginTop: spacing.sm }} />
+
       <Text style={styles.note}>
-        Numa versão futura, o carregamento será feito por Multicaixa Express / referência bancária.
+        Os vouchers de recarga são adquiridos junto de um agente SunTrip autorizado. Cada código só
+        pode ser usado uma vez.
       </Text>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  label: { color: colors.white, fontSize: font.size.lg, fontWeight: font.weight.semibold, marginBottom: spacing.md },
-  presets: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  preset: { backgroundColor: colors.surface, borderRadius: radius.full, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderWidth: 1, borderColor: colors.border },
-  presetText: { color: colors.white, fontSize: font.size.sm, fontWeight: font.weight.medium },
-  note: { color: colors.mutedDark, fontSize: font.size.xs, marginTop: spacing.lg, textAlign: 'center' },
+  hero: { alignItems: 'center', marginBottom: spacing.xl },
+  heroTitle: { color: colors.white, fontSize: font.size.xl, fontWeight: font.weight.bold, marginTop: spacing.md },
+  heroText: { color: colors.muted, textAlign: 'center', marginTop: spacing.sm, fontSize: font.size.sm, paddingHorizontal: spacing.md },
+  note: { color: colors.mutedDark, fontSize: font.size.xs, marginTop: spacing.xl, textAlign: 'center' },
 });

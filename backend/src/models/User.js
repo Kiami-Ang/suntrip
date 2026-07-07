@@ -12,9 +12,14 @@ const userSchema = new mongoose.Schema(
     // PIN de 4-6 dígitos para confirmar pagamentos (definido após o registo)
     pinHash: { type: String, default: null },
 
-    userType: { type: String, enum: ['client', 'driver'], default: 'client' },
+    userType: { type: String, enum: ['client', 'driver', 'business'], default: 'client' },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     status: { type: String, enum: ['active', 'blocked'], default: 'active' },
+
+    // Verificação de email real (código de 6 dígitos enviado por email)
+    emailVerified: { type: Boolean, default: false },
+    emailVerifyCode: { type: String, default: null },
+    emailVerifyExpires: { type: Date, default: null },
 
     // Saldo em CÊNTIMOS (inteiro). Nunca negativo.
     balanceCents: { type: Number, default: 0, min: 0 },
@@ -30,6 +35,11 @@ const userSchema = new mongoose.Schema(
     vehiclePlate: { type: String, default: '' },
     idDocument: { type: String, default: '' },
     professionalNotes: { type: String, default: '' },
+
+    // Dados de entidade comercial (negócio/loja)
+    businessName: { type: String, default: '' },
+    businessNif: { type: String, default: '' },
+    businessCategory: { type: String, default: '' },
 
     lastActiveAt: { type: Date, default: Date.now },
   },
@@ -53,6 +63,15 @@ userSchema.methods.comparePin = function comparePin(pin) {
   return bcrypt.compare(String(pin), this.pinHash);
 };
 
+// Gera um código de verificação de email (6 dígitos, válido 30 min)
+userSchema.methods.generateEmailCode = function generateEmailCode() {
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  this.emailVerifyCode = code;
+  this.emailVerifyExpires = new Date(Date.now() + 30 * 60 * 1000);
+  this.emailVerified = false;
+  return code;
+};
+
 userSchema.methods.toPublic = function toPublic() {
   return {
     id: this._id.toString(),
@@ -65,6 +84,7 @@ userSchema.methods.toPublic = function toPublic() {
     balance: toKz(this.balanceCents),
     balanceCents: this.balanceCents,
     hasPin: Boolean(this.pinHash),
+    emailVerified: this.emailVerified,
     avatar: this.avatar,
     bankAccount: this.bankAccount,
     address: this.address,
@@ -72,6 +92,9 @@ userSchema.methods.toPublic = function toPublic() {
     vehiclePlate: this.vehiclePlate,
     idDocument: this.idDocument,
     professionalNotes: this.professionalNotes,
+    businessName: this.businessName,
+    businessNif: this.businessNif,
+    businessCategory: this.businessCategory,
     createdAt: this.createdAt,
   };
 };

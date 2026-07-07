@@ -62,7 +62,7 @@ export default function WalletScreen({ navigation }) {
       ) : null}
 
       <View style={styles.card}>
-        <ActionRow icon="add-circle" title="Carregar saldo" subtitle="Adiciona dinheiro à carteira" onPress={() => navigation.navigate('Deposit')} />
+        <ActionRow icon="add-circle" title="Carregar saldo" subtitle="Recarrega com um código de voucher" onPress={() => navigation.navigate('Deposit')} />
         <ActionRow icon="paper-plane" title="Transferir" subtitle="Enviar para outro utilizador" onPress={() => navigation.navigate('Transfer')} />
         <ActionRow icon="qr-code" title="Receber com QR" subtitle="Gera um código de cobrança" onPress={() => navigation.navigate('QrGenerate')} />
         <ActionRow icon="scan" title="Pagar com QR" subtitle="Lê um código para pagar" onPress={() => navigation.navigate('QrScan')} />

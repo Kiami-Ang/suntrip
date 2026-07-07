@@ -40,6 +40,12 @@ export default function RegisterChooseScreen({ navigation }) {
         subtitle="Recebe pagamentos das corridas"
         onPress={() => navigation.navigate('RegisterDriver')}
       />
+      <Option
+        icon="storefront"
+        title="Negócio / Loja"
+        subtitle="Recebe pagamentos comerciais na carteira"
+        onPress={() => navigation.navigate('RegisterBusiness')}
+      />
     </Screen>
   );
 }

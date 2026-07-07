@@ -4,6 +4,7 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterChooseScreen from '../screens/auth/RegisterChooseScreen';
 import RegisterClientScreen from '../screens/auth/RegisterClientScreen';
 import RegisterDriverScreen from '../screens/auth/RegisterDriverScreen';
+import RegisterBusinessScreen from '../screens/auth/RegisterBusinessScreen';
 import colors from '../theme/colors';
 
 const Stack = createNativeStackNavigator();
@@ -22,6 +23,7 @@ export default function AuthStack() {
       <Stack.Screen name="RegisterChoose" component={RegisterChooseScreen} options={{ title: 'Criar conta' }} />
       <Stack.Screen name="RegisterClient" component={RegisterClientScreen} options={{ title: 'Conta de Cliente' }} />
       <Stack.Screen name="RegisterDriver" component={RegisterDriverScreen} options={{ title: 'Conta de Motorista' }} />
+      <Stack.Screen name="RegisterBusiness" component={RegisterBusinessScreen} options={{ title: 'Conta de Negócio' }} />
     </Stack.Navigator>
   );
 }

@@ -33,15 +33,21 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{initials(user?.name)}</Text>
         </View>
-        <Text style={styles.name}>{user?.name}</Text>
+        <Text style={styles.name}>{user?.userType === 'business' && user?.businessName ? user.businessName : user?.name}</Text>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{user?.userType === 'driver' ? 'Motorista' : 'Cliente'}</Text>
+          <Text style={styles.badgeText}>
+            {user?.userType === 'driver' ? 'Motorista' : user?.userType === 'business' ? 'Negócio' : 'Cliente'}
+          </Text>
         </View>
       </View>
 
       <View style={styles.card}>
         <Row icon="wallet" label="Saldo" value={formatKz(user?.balance ?? 0)} />
-        <Row icon="mail" label="Email" value={user?.email} />
+        <Row
+          icon={user?.emailVerified ? 'checkmark-circle' : 'mail'}
+          label="Email"
+          value={user?.emailVerified ? `${user?.email} ✓` : user?.email}
+        />
         <Row icon="call" label="Telefone" value={user?.phone} />
       </View>
 
@@ -60,6 +66,26 @@ export default function ProfileScreen({ navigation }) {
           <View style={styles.card}>
             <Row icon="card" label="Matrícula" value={user?.vehiclePlate || '—'} />
             <Row icon="document-text" label="Carta" value={user?.driverLicense || '—'} />
+          </View>
+        </>
+      ) : null}
+
+      {user?.userType === 'business' ? (
+        <>
+          <Text style={styles.section}>Dados do negócio</Text>
+          <View style={styles.card}>
+            <Row icon="storefront" label="Negócio" value={user?.businessName || '—'} />
+            <Row icon="pricetag" label="Categoria" value={user?.businessCategory || '—'} />
+            {user?.businessNif ? <Row icon="document-text" label="NIF" value={user.businessNif} /> : null}
+          </View>
+        </>
+      ) : null}
+
+      {user?.role === 'admin' ? (
+        <>
+          <Text style={styles.section}>Administração</Text>
+          <View style={styles.card}>
+            <Row icon="ticket" label="Gerar vouchers de recarga" onPress={() => navigation.navigate('AdminVouchers')} />
           </View>
         </>
       ) : null}

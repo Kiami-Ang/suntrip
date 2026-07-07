@@ -3,10 +3,13 @@ const User = require('../models/User');
 const { auth, asyncHandler } = require('../middleware/auth');
 const { AppError } = require('../middleware/error');
 const { issueTokens, verifyRefreshToken, signAccessToken } = require('../utils/token');
+const { sendVerificationEmail, emailEnabled } = require('../services/email.service');
 const {
   registerClientSchema,
   registerDriverSchema,
+  registerBusinessSchema,
   loginSchema,
+  verifyEmailSchema,
   pinSchema,
 } = require('../utils/validation');
 
@@ -15,6 +18,22 @@ const router = express.Router();
 async function createUserResponse(user) {
   const tokens = issueTokens(user._id.toString());
   return { user: user.toPublic(), ...tokens };
+}
+
+// Cria o código de verificação e tenta enviar por email.
+// Se o SMTP não estiver configurado, marca como verificado (não bloqueia).
+async function startEmailVerification(user) {
+  if (!emailEnabled()) {
+    user.emailVerified = true;
+    return;
+  }
+  const code = user.generateEmailCode();
+  try {
+    await sendVerificationEmail(user.email, code, user.name);
+  } catch (err) {
+    console.error('[email] falha ao enviar verificação:', err.message);
+    // Não bloqueia o registo se o envio falhar; o utilizador pode reenviar.
+  }
 }
 
 router.post(
@@ -31,6 +50,7 @@ router.post(
       address: data.address,
     });
     await user.setPassword(data.password);
+    await startEmailVerification(user);
     await user.save();
 
     res.status(201).json(await createUserResponse(user));
@@ -54,6 +74,30 @@ router.post(
       professionalNotes: data.professionalNotes,
     });
     await user.setPassword(data.password);
+    await startEmailVerification(user);
+    await user.save();
+
+    res.status(201).json(await createUserResponse(user));
+  })
+);
+
+router.post(
+  '/register/business',
+  asyncHandler(async (req, res) => {
+    const data = registerBusinessSchema.parse(req.body);
+
+    const user = new User({
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      userType: 'business',
+      businessName: data.businessName,
+      businessNif: data.businessNif,
+      businessCategory: data.businessCategory,
+      address: data.address,
+    });
+    await user.setPassword(data.password);
+    await startEmailVerification(user);
     await user.save();
 
     res.status(201).json(await createUserResponse(user));
@@ -123,6 +167,60 @@ router.post(
     await req.user.save();
 
     res.json({ message: 'PIN definido', user: req.user.toPublic() });
+  })
+);
+
+// Verificar email com o código de 6 dígitos
+router.post(
+  '/verify-email',
+  auth,
+  asyncHandler(async (req, res) => {
+    const { code } = verifyEmailSchema.parse(req.body);
+
+    if (req.user.emailVerified) {
+      return res.json({ message: 'Email já verificado', user: req.user.toPublic() });
+    }
+    if (!req.user.emailVerifyCode || !req.user.emailVerifyExpires) {
+      throw new AppError('Pede um novo código', 400);
+    }
+    if (req.user.emailVerifyExpires < new Date()) {
+      throw new AppError('Código expirado. Pede um novo.', 400);
+    }
+    if (req.user.emailVerifyCode !== code) {
+      throw new AppError('Código incorrecto', 400);
+    }
+
+    req.user.emailVerified = true;
+    req.user.emailVerifyCode = null;
+    req.user.emailVerifyExpires = null;
+    await req.user.save();
+
+    res.json({ message: 'Email verificado', user: req.user.toPublic() });
+  })
+);
+
+// Reenviar o código de verificação
+router.post(
+  '/resend-code',
+  auth,
+  asyncHandler(async (req, res) => {
+    if (req.user.emailVerified) {
+      return res.json({ message: 'Email já verificado' });
+    }
+    if (!emailEnabled()) {
+      // Sem SMTP: verifica automaticamente para não bloquear.
+      req.user.emailVerified = true;
+      await req.user.save();
+      return res.json({ message: 'Verificação concluída', user: req.user.toPublic() });
+    }
+    const code = req.user.generateEmailCode();
+    await req.user.save();
+    try {
+      await sendVerificationEmail(req.user.email, code, req.user.name);
+    } catch (err) {
+      throw new AppError('Não foi possível enviar o email. Tente mais tarde.', 502);
+    }
+    res.json({ message: 'Código reenviado' });
   })
 );
 
