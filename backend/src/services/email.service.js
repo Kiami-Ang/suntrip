@@ -1,18 +1,30 @@
 const nodemailer = require('nodemailer');
 
 const {
+  BREVO_API_KEY,
   SMTP_HOST,
   SMTP_PORT,
   SMTP_USER,
   SMTP_PASS,
   EMAIL_FROM,
+  SENDER_EMAIL,
 } = process.env;
 
-// O envio de email só está ativo se as credenciais SMTP estiverem configuradas.
-const isConfigured = Boolean(SMTP_HOST && SMTP_USER && SMTP_PASS);
+// Extrai o email do formato "Nome <email@dominio>" ou usa o valor direto.
+function parseSender() {
+  const raw = EMAIL_FROM || '';
+  const match = raw.match(/<([^>]+)>/);
+  const email = (match ? match[1] : SENDER_EMAIL || SMTP_USER || '').trim();
+  const name = raw.replace(/<[^>]+>/, '').trim() || 'SunTrip';
+  return { name, email };
+}
+
+// Prioridade: Brevo (API HTTP, funciona no Render grátis) > SMTP > desativado.
+const useBrevo = Boolean(BREVO_API_KEY);
+const useSmtp = !useBrevo && Boolean(SMTP_HOST && SMTP_USER && SMTP_PASS);
 
 let transporter = null;
-if (isConfigured) {
+if (useSmtp) {
   transporter = nodemailer.createTransport({
     host: SMTP_HOST,
     port: Number(SMTP_PORT) || 587,
@@ -22,32 +34,61 @@ if (isConfigured) {
 }
 
 /** Indica se o envio real de emails está ativo. */
-const emailEnabled = () => isConfigured;
+const emailEnabled = () => useBrevo || useSmtp;
 
-async function sendVerificationEmail(to, code, name = '') {
-  if (!isConfigured) {
-    // Sem SMTP configurado: apenas regista no log (modo desenvolvimento).
-    console.log(`[email] (SMTP desativado) Código para ${to}: ${code}`);
-    return false;
-  }
-
-  const from = EMAIL_FROM || `SunTrip <${SMTP_USER}>`;
-  const html = `
+function buildHtml(code, name) {
+  return `
     <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px;background:#0c1a2e;border-radius:16px;color:#fff">
       <h2 style="color:#fcc103;margin:0 0 8px">SunTrip</h2>
       <p style="margin:0 0 16px;color:#cdd7e6">Olá ${name || ''}, confirma o teu email com o código abaixo:</p>
       <div style="font-size:34px;letter-spacing:8px;font-weight:bold;text-align:center;background:#13294a;padding:18px;border-radius:12px;color:#fff">${code}</div>
       <p style="margin:16px 0 0;color:#8fa3bf;font-size:13px">O código é válido por 30 minutos. Se não pediste isto, ignora este email.</p>
     </div>`;
+}
 
-  await transporter.sendMail({
-    from,
-    to,
-    subject: `SunTrip — o teu código é ${code}`,
-    text: `O teu código de verificação SunTrip é: ${code} (válido 30 minutos).`,
-    html,
+async function sendViaBrevo(to, code, name) {
+  const sender = parseSender();
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': BREVO_API_KEY,
+      'content-type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { name: sender.name, email: sender.email },
+      to: [{ email: to }],
+      subject: `SunTrip — o teu código é ${code}`,
+      htmlContent: buildHtml(code, name),
+      textContent: `O teu código de verificação SunTrip é: ${code} (válido 30 minutos).`,
+    }),
   });
-  return true;
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Brevo ${res.status}: ${detail}`);
+  }
+}
+
+async function sendVerificationEmail(to, code, name = '') {
+  if (useBrevo) {
+    await sendViaBrevo(to, code, name);
+    return true;
+  }
+  if (useSmtp) {
+    const from = EMAIL_FROM || `SunTrip <${SMTP_USER}>`;
+    await transporter.sendMail({
+      from,
+      to,
+      subject: `SunTrip — o teu código é ${code}`,
+      text: `O teu código de verificação SunTrip é: ${code} (válido 30 minutos).`,
+      html: buildHtml(code, name),
+    });
+    return true;
+  }
+  // Sem envio configurado: apenas regista no log (modo desenvolvimento).
+  console.log(`[email] (envio desativado) Código para ${to}: ${code}`);
+  return false;
 }
 
 module.exports = { sendVerificationEmail, emailEnabled };
