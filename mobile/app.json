@@ -37,6 +37,14 @@
         {
           "cameraPermission": "A SunTrip precisa da câmara para ler QR Codes de pagamento."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "A SunTrip precisa de aceder às tuas fotos para definires a foto de perfil.",
+          "cameraPermission": "A SunTrip precisa da câmara para tirares uma foto de perfil.",
+          "microphonePermission": false
+        }
       ]
     ],
     "extra": {

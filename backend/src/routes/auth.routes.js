@@ -3,13 +3,15 @@ const User = require('../models/User');
 const { auth, asyncHandler } = require('../middleware/auth');
 const { AppError } = require('../middleware/error');
 const { issueTokens, verifyRefreshToken, signAccessToken } = require('../utils/token');
-const { sendVerificationEmail, emailEnabled } = require('../services/email.service');
+const { sendVerificationEmail, sendPasswordResetEmail, emailEnabled } = require('../services/email.service');
 const {
   registerClientSchema,
   registerDriverSchema,
   registerBusinessSchema,
   loginSchema,
   verifyEmailSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
   pinSchema,
 } = require('../utils/validation');
 
@@ -221,6 +223,59 @@ router.post(
       throw new AppError('Não foi possível enviar o email. Tente mais tarde.', 502);
     }
     res.json({ message: 'Código reenviado' });
+  })
+);
+
+// Pedir código de recuperação de palavra-passe
+router.post(
+  '/forgot-password',
+  asyncHandler(async (req, res) => {
+    const { email } = forgotPasswordSchema.parse(req.body);
+    const user = await User.findOne({ email });
+
+    // Resposta genérica (não revela se o email existe)
+    const genericMsg = { message: 'Se a conta existir, enviámos um código para o email.' };
+
+    if (!user) return res.json(genericMsg);
+    if (!emailEnabled()) {
+      throw new AppError('Recuperação por email indisponível de momento.', 503);
+    }
+
+    const code = user.generateResetCode();
+    await user.save();
+    try {
+      await sendPasswordResetEmail(user.email, code, user.name);
+    } catch (err) {
+      console.error('[email] falha ao enviar recuperação:', err.message);
+      throw new AppError('Não foi possível enviar o email. Tente mais tarde.', 502);
+    }
+    res.json(genericMsg);
+  })
+);
+
+// Redefinir palavra-passe com o código recebido por email
+router.post(
+  '/reset-password',
+  asyncHandler(async (req, res) => {
+    const { email, code, password } = resetPasswordSchema.parse(req.body);
+    const user = await User.findOne({ email });
+
+    if (!user || !user.resetCode || !user.resetExpires) {
+      throw new AppError('Pedido inválido. Peça um novo código.', 400);
+    }
+    if (user.resetExpires < new Date()) {
+      throw new AppError('Código expirado. Peça um novo.', 400);
+    }
+    if (user.resetCode !== code) {
+      throw new AppError('Código incorrecto', 400);
+    }
+
+    await user.setPassword(password);
+    user.resetCode = null;
+    user.resetExpires = null;
+    await user.save();
+
+    res.json(await createUserResponse(user));
   })
 );
 

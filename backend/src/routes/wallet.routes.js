@@ -5,6 +5,7 @@ const { auth, adminOnly, asyncHandler } = require('../middleware/auth');
 const { AppError } = require('../middleware/error');
 const { parseAmountKz, toKz } = require('../utils/money');
 const walletService = require('../services/wallet.service');
+const { notify } = require('../services/notification.service');
 const { getIO } = require('../socket');
 
 const router = express.Router();
@@ -63,6 +64,12 @@ router.post(
       getIO()?.to(`user:${recipientId}`).emit('wallet:received', {
         amount: toKz(amountCents),
         from: req.user.name,
+      });
+      notify(recipientId, {
+        type: 'money_received',
+        title: 'Dinheiro recebido',
+        body: `Recebeste ${toKz(amountCents)} Kz de ${req.user.name}.`,
+        metadata: { amount: toKz(amountCents), from: req.user.name },
       });
     }
 

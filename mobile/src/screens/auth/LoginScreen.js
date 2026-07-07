@@ -66,6 +66,10 @@ export default function LoginScreen({ navigation }) {
 
         <Button title="Entrar" onPress={onSubmit} loading={loading} style={{ marginTop: spacing.sm }} />
 
+        <Pressable style={styles.forgot} onPress={() => navigation.navigate('ForgotPassword')}>
+          <Text style={styles.link}>Esqueci-me da palavra-passe</Text>
+        </Pressable>
+
         <Pressable style={styles.footer} onPress={() => navigation.navigate('RegisterChoose')}>
           <Text style={styles.footerText}>
             Ainda não tens conta? <Text style={styles.link}>Criar conta</Text>
@@ -91,6 +95,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     overflow: 'hidden',
   },
+  forgot: { marginTop: spacing.lg, alignItems: 'center' },
   footer: { marginTop: spacing.xl, alignItems: 'center' },
   footerText: { color: colors.muted },
   link: { color: colors.ocean, fontWeight: font.weight.semibold },

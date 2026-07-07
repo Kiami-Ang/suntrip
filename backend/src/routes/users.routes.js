@@ -27,6 +27,33 @@ router.put(
   })
 );
 
+// Atualizar foto de perfil (data URL base64, imagem já redimensionada no cliente)
+router.put(
+  '/avatar',
+  auth,
+  asyncHandler(async (req, res) => {
+    const { avatar } = req.body;
+
+    if (avatar === '' || avatar === null) {
+      req.user.avatar = '';
+      await req.user.save();
+      return res.json({ user: req.user.toPublic() });
+    }
+
+    if (typeof avatar !== 'string' || !/^data:image\/(png|jpe?g|webp);base64,/.test(avatar)) {
+      throw new AppError('Imagem inválida', 400);
+    }
+    // Limite de segurança (~1.5MB de base64)
+    if (avatar.length > 1_500_000) {
+      throw new AppError('Imagem demasiado grande', 413);
+    }
+
+    req.user.avatar = avatar;
+    await req.user.save();
+    res.json({ user: req.user.toPublic() });
+  })
+);
+
 // Procurar destinatário para transferência (por telefone, email ou nome)
 router.get(
   '/search',

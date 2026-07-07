@@ -72,6 +72,16 @@ const verifyEmailSchema = z.object({
   code: z.string({ required_error: 'Código é obrigatório' }).trim().regex(/^\d{6}$/, 'Código deve ter 6 dígitos'),
 });
 
+const forgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+
+const resetPasswordSchema = z.object({
+  email: emailSchema,
+  code: z.string({ required_error: 'Código é obrigatório' }).trim().regex(/^\d{6}$/, 'Código deve ter 6 dígitos'),
+  password: passwordSchema,
+});
+
 module.exports = {
   ALLOWED_EMAIL_DOMAINS,
   emailSchema,
@@ -84,4 +94,6 @@ module.exports = {
   registerBusinessSchema,
   loginSchema,
   verifyEmailSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 };

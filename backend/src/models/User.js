@@ -21,6 +21,10 @@ const userSchema = new mongoose.Schema(
     emailVerifyCode: { type: String, default: null },
     emailVerifyExpires: { type: Date, default: null },
 
+    // Recuperação de palavra-passe
+    resetCode: { type: String, default: null },
+    resetExpires: { type: Date, default: null },
+
     // Saldo em CÊNTIMOS (inteiro). Nunca negativo.
     balanceCents: { type: Number, default: 0, min: 0 },
 
@@ -69,6 +73,14 @@ userSchema.methods.generateEmailCode = function generateEmailCode() {
   this.emailVerifyCode = code;
   this.emailVerifyExpires = new Date(Date.now() + 30 * 60 * 1000);
   this.emailVerified = false;
+  return code;
+};
+
+// Gera um código de recuperação de palavra-passe (6 dígitos, válido 30 min)
+userSchema.methods.generateResetCode = function generateResetCode() {
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  this.resetCode = code;
+  this.resetExpires = new Date(Date.now() + 30 * 60 * 1000);
   return code;
 };
 

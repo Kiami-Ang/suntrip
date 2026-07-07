@@ -7,6 +7,7 @@ import BalanceCard from '../components/BalanceCard';
 import TransactionItem from '../components/TransactionItem';
 import EmptyState from '../components/EmptyState';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationsContext';
 import useSocket from '../hooks/useSocket';
 import api from '../services/api';
 import { formatKz } from '../utils/format';
@@ -25,6 +26,7 @@ function QuickAction({ icon, label, onPress, primary }) {
 
 export default function DashboardScreen({ navigation }) {
   const { user, patchUser } = useAuth();
+  const { unread } = useNotifications();
   const [data, setData] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -62,9 +64,22 @@ export default function DashboardScreen({ navigation }) {
           <Text style={styles.hello}>Olá,</Text>
           <Text style={styles.name}>{user?.name?.split(' ')[0] || 'Utilizador'}</Text>
         </View>
-        <View style={styles.online}>
-          <View style={styles.dot} />
-          <Text style={styles.onlineText}>{data?.onlineCount ?? 0} online</Text>
+        <View style={styles.headerRight}>
+          <View style={styles.online}>
+            <View style={styles.dot} />
+            <Text style={styles.onlineText}>{data?.onlineCount ?? 0} online</Text>
+          </View>
+          <Pressable
+            onPress={() => navigation.navigate('Notifications')}
+            style={({ pressed }) => [styles.bell, pressed && { opacity: 0.85 }]}
+          >
+            <Ionicons name="notifications" size={20} color={colors.white} />
+            {unread > 0 ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unread > 9 ? '9+' : unread}</Text>
+              </View>
+            ) : null}
+          </Pressable>
         </View>
       </View>
 
@@ -108,9 +123,20 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg },
   hello: { color: colors.muted, fontSize: font.size.md },
   name: { color: colors.white, fontSize: font.size.xxl, fontWeight: font.weight.bold },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   online: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radius.full },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success, marginRight: 6 },
   onlineText: { color: colors.muted, fontSize: font.size.xs },
+  bell: {
+    width: 40, height: 40, borderRadius: radius.full, backgroundColor: colors.surface,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border,
+  },
+  badge: {
+    position: 'absolute', top: -2, right: -2, minWidth: 18, height: 18, borderRadius: 9,
+    backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
+    borderWidth: 2, borderColor: colors.navy,
+  },
+  badgeText: { color: '#fff', fontSize: 10, fontWeight: font.weight.bold },
   actions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xl },
   action: { alignItems: 'center', flex: 1 },
   actionIcon: {

@@ -12,6 +12,7 @@ const qrRoutes = require('./routes/qr.routes');
 const transactionRoutes = require('./routes/transactions.routes');
 const userRoutes = require('./routes/users.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
+const notificationRoutes = require('./routes/notifications.routes');
 
 const app = express();
 
@@ -23,7 +24,7 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '4mb' })); // margem para foto de perfil (base64)
 if (!env.isProd) app.use(morgan('dev'));
 
 // Rate limiting global
@@ -54,6 +55,7 @@ app.use('/api/qr', qrRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

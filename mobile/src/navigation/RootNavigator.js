@@ -14,6 +14,7 @@ import QrScanScreen from '../screens/qr/QrScanScreen';
 import SetPinScreen from '../screens/SetPinScreen';
 import VerifyEmailScreen from '../screens/auth/VerifyEmailScreen';
 import AdminVouchersScreen from '../screens/AdminVouchersScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -57,6 +58,7 @@ export default function RootNavigator() {
             />
             <Stack.Screen name="SetPin" component={SetPinScreen} options={{ title: 'PIN de pagamento' }} />
             <Stack.Screen name="AdminVouchers" component={AdminVouchersScreen} options={{ title: 'Gerar vouchers' }} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notificações' }} />
           </>
         )}
       </Stack.Navigator>

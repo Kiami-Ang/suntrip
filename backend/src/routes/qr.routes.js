@@ -6,6 +6,7 @@ const { auth, asyncHandler } = require('../middleware/auth');
 const { AppError } = require('../middleware/error');
 const { parseAmountKz, toKz } = require('../utils/money');
 const walletService = require('../services/wallet.service');
+const { notify } = require('../services/notification.service');
 const { getIO } = require('../socket');
 
 const router = express.Router();
@@ -101,6 +102,12 @@ router.post(
         amount: toKz(payment.amountCents),
         from: req.user.name,
         via: 'qr',
+      });
+      notify(payment.payeeId, {
+        type: 'payment_received',
+        title: 'Pagamento recebido',
+        body: `Recebeste ${toKz(payment.amountCents)} Kz de ${req.user.name} (QR).`,
+        metadata: { amount: toKz(payment.amountCents), from: req.user.name, via: 'qr' },
       });
 
       res.json({

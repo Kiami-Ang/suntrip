@@ -115,6 +115,29 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
+  const forgotPassword = useCallback(async (email) => {
+    const { data } = await api.post('/auth/forgot-password', { email });
+    return data;
+  }, []);
+
+  const resetPassword = useCallback(
+    async (email, code, password) => {
+      const { data } = await api.post('/auth/reset-password', { email, code, password });
+      await applySession(data);
+      return data.user;
+    },
+    [applySession]
+  );
+
+  const updateAvatar = useCallback(async (avatar) => {
+    const { data } = await api.put('/users/avatar', { avatar });
+    if (data.user) {
+      setUser(data.user);
+      await storage.setUser(data.user);
+    }
+    return data.user;
+  }, []);
+
   const refreshUser = useCallback(async () => {
     const { data } = await api.get('/auth/me');
     setUser(data.user);
@@ -141,6 +164,9 @@ export function AuthProvider({ children }) {
     registerBusiness,
     verifyEmail,
     resendCode,
+    forgotPassword,
+    resetPassword,
+    updateAvatar,
     logout,
     refreshUser,
     patchUser,
