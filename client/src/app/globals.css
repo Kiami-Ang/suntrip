@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0c1a2e;
+  --ocean: #38bdf8;
+  --yellow: #facc15;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-gradient-page text-suntrip-white antialiased;
+  background-attachment: fixed;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-yellow px-4 py-2.5 text-sm font-bold text-suntrip-navy shadow-yellow transition hover:scale-[1.02] hover:brightness-110 active:scale-[0.98] disabled:opacity-50;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-suntrip-border/50 bg-suntrip-card px-4 py-2.5 text-sm font-medium transition hover:scale-[1.02] hover:border-suntrip-ocean/60 hover:bg-suntrip-card-hover active:scale-[0.98];
+  }
+  .btn-ocean {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-ocean px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02] hover:brightness-110 active:scale-[0.98] disabled:opacity-50;
+  }
+  .card {
+    @apply rounded-2xl border border-suntrip-border/40 bg-suntrip-card/90 p-4 shadow-card-soft backdrop-blur-sm;
+  }
+  .card-elevated {
+    @apply rounded-2xl border border-suntrip-border/50 bg-suntrip-card-elevated p-5 shadow-card-soft;
+  }
+  .card-balance {
+    @apply rounded-2xl border border-suntrip-yellow/50 bg-suntrip-card-elevated p-5 shadow-yellow;
+  }
+  .section-card {
+    @apply overflow-hidden rounded-2xl border border-suntrip-border/40 bg-suntrip-card/95 shadow-card-soft;
+  }
+  .section-title {
+    @apply mb-3 text-sm font-semibold uppercase tracking-wide text-suntrip-muted;
+  }
+  .input {
+    @apply w-full rounded-xl border border-suntrip-border/50 bg-suntrip-surface px-4 py-2.5 text-suntrip-white placeholder:text-suntrip-muted focus:border-suntrip-yellow focus:outline-none focus:ring-1 focus:ring-suntrip-yellow/40;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-suntrip-muted;
+  }
+  .nav-tab {
+    @apply flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition duration-200;
+  }
+  .nav-tab-active {
+    @apply bg-suntrip-yellow text-suntrip-navy shadow-yellow;
+  }
+  .nav-tab-inactive {
+    @apply text-suntrip-muted hover:scale-105 hover:bg-suntrip-card hover:text-white;
+  }
+  .filter-chip {
+    @apply rounded-full border border-suntrip-border/50 bg-suntrip-surface px-3.5 py-1.5 text-xs font-medium text-suntrip-muted transition duration-200 hover:border-suntrip-ocean/50 hover:text-white;
+  }
+  .filter-chip-active {
+    @apply border-suntrip-yellow/60 bg-suntrip-yellow/15 text-suntrip-yellow;
+  }
+  .action-tile {
+    @apply flex flex-col items-center justify-center gap-2 rounded-2xl border border-suntrip-border/40 bg-suntrip-card/90 py-3.5 shadow-card transition duration-200 hover:scale-[1.03] hover:border-suntrip-ocean/40 hover:bg-suntrip-card-hover hover:shadow-card-soft active:scale-[0.98];
+  }
+  .action-tile-primary {
+    @apply flex flex-col items-center justify-center gap-2 rounded-2xl bg-gradient-action py-3.5 shadow-yellow transition duration-200 hover:scale-[1.03] hover:brightness-105 active:scale-[0.98];
+  }
+  .action-tile-icon {
+    @apply flex h-11 w-11 items-center justify-center rounded-full;
+  }
+  .transaction-row {
+    @apply px-4 py-4 transition hover:bg-suntrip-card-hover/50;
+  }
+}

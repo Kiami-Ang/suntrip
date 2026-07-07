@@ -1,0 +1,19 @@
+# Dependências
+node_modules/
+
+# Segredos / ambiente
+.env
+.env.local
+.env.*.local
+
+# Build / cache
+dist/
+dist-check/
+build/
+.expo/
+web-build/
+*.log
+
+# Sistema
+.DS_Store
+Thumbs.db

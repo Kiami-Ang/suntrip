@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "SunTrip",
+    "slug": "suntrip",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "suntrip",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0c1a2e"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.suntrip.app"
+    },
+    "android": {
+      "package": "com.suntrip.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#fcc103",
+        "foregroundImage": "./assets/adaptive-icon.png"
+      },
+      "permissions": ["CAMERA"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "A SunTrip precisa da câmara para ler QR Codes de pagamento."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}
