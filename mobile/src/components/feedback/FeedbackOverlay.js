@@ -79,15 +79,12 @@ export default function FeedbackOverlay({
   const opacity = useRef(new Animated.Value(0)).current;
 
   const [renderBanner, setRenderBanner] = useState(null);
-  const lastIdRef = useRef(null);
 
   const bannerTheme = useMemo(() => kindStyles(renderBanner?.kind), [renderBanner?.kind]);
 
   useEffect(() => {
-    if (banner?.id && banner.id !== lastIdRef.current) {
-      lastIdRef.current = banner.id;
-      setRenderBanner(banner);
-    }
+    // Atualiza sempre, inclusive quando visible muda para false (para animar a saída)
+    if (banner) setRenderBanner(banner);
   }, [banner]);
 
   useEffect(() => {
@@ -135,34 +132,37 @@ export default function FeedbackOverlay({
     });
   }, [renderBanner, onBannerHidden, opacity, translateY]);
 
-  const bannerTop = insets.top + spacing.sm;
+  // Dá margem extra para não colidir com status bar/notch
+  const bannerTop = insets.top + spacing.md;
 
   return (
     <>
       {!!renderBanner && (
         <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
           <Animated.View
-            pointerEvents="none"
+            pointerEvents="box-none"
             style={[styles.bannerWrap, { top: bannerTop, opacity, transform: [{ translateY }] }]}
           >
-            <View style={[styles.banner, { backgroundColor: bannerTheme.bg, borderColor: bannerTheme.border }]}>
-              <View style={[styles.badge, { backgroundColor: bannerTheme.dot }]}>
-                <Text style={styles.badgeText}>{bannerTheme.icon}</Text>
-              </View>
+            <Pressable onPress={onBannerHidden} style={({ pressed }) => [pressed && { opacity: 0.96 }]}>
+              <View style={[styles.banner, { backgroundColor: bannerTheme.bg, borderColor: bannerTheme.border }]}>
+                <View style={[styles.badge, { backgroundColor: bannerTheme.dot }]}>
+                  <Text style={styles.badgeText}>{bannerTheme.icon}</Text>
+                </View>
 
-              <View style={styles.bannerText}>
-                {!!renderBanner.title ? (
-                  <Text numberOfLines={1} style={[styles.bannerTitle, { color: bannerTheme.title }]}>
-                    {renderBanner.title}
-                  </Text>
-                ) : null}
-                {!!renderBanner.message ? (
-                  <Text numberOfLines={2} style={[styles.bannerMessage, { color: bannerTheme.message }]}>
-                    {renderBanner.message}
-                  </Text>
-                ) : null}
+                <View style={styles.bannerText}>
+                  {!!renderBanner.title ? (
+                    <Text numberOfLines={1} style={[styles.bannerTitle, { color: bannerTheme.title }]}>
+                      {renderBanner.title}
+                    </Text>
+                  ) : null}
+                  {!!renderBanner.message ? (
+                    <Text numberOfLines={2} style={[styles.bannerMessage, { color: bannerTheme.message }]}>
+                      {renderBanner.message}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
-            </View>
+            </Pressable>
           </Animated.View>
         </View>
       )}
@@ -208,7 +208,7 @@ export default function FeedbackOverlay({
 }
 
 const styles = StyleSheet.create({
-  bannerWrap: { position: 'absolute', left: spacing.lg, right: spacing.lg },
+  bannerWrap: { position: 'absolute', left: spacing.lg, right: spacing.lg, zIndex: 999, elevation: 10 },
   banner: {
     minHeight: BANNER_HEIGHT,
     borderRadius: radius.lg,
