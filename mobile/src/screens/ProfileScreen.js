@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../components/Screen';
 import Avatar from '../components/Avatar';
 import { useAuth } from '../context/AuthContext';
+import { useFeedback } from '../context/FeedbackContext';
 import { formatKz } from '../utils/format';
 import { pickAvatar } from '../utils/image';
 import { errorMessage } from '../services/api';
@@ -29,6 +30,7 @@ function Row({ icon, label, value, onPress, danger, last }) {
 
 export default function ProfileScreen({ navigation }) {
   const { user, logout, updateAvatar } = useAuth();
+  const feedback = useFeedback();
   const [uploading, setUploading] = useState(false);
 
   const displayName = user?.userType === 'business' && user?.businessName ? user.businessName : user?.name;
@@ -41,40 +43,38 @@ export default function ProfileScreen({ navigation }) {
       if (!dataUrl) return;
       await updateAvatar(dataUrl);
     } catch (err) {
-      Alert.alert('Foto de perfil', errorMessage(err, 'Não foi possível atualizar a foto.'));
+      feedback.showError(errorMessage(err, 'Não foi possível atualizar a foto.'), { title: 'Foto de perfil' });
     } finally {
       setUploading(false);
     }
   };
 
   const onAvatarPress = () => {
-    const options = [
-      { text: 'Escolher da galeria', onPress: () => changePhoto('library') },
-      { text: 'Tirar foto', onPress: () => changePhoto('camera') },
-    ];
-    if (user?.avatar) {
-      options.push({
-        text: 'Remover foto',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            setUploading(true);
-            await updateAvatar('');
-          } finally {
-            setUploading(false);
-          }
-        },
+    feedback
+      .confirm({
+        title: 'Foto de perfil',
+        message: 'Queres escolher uma foto da galeria ou tirar uma nova?',
+        confirmText: 'Galeria',
+        cancelText: 'Câmara',
+      })
+      .then((gallery) => {
+        if (gallery) changePhoto('library');
+        else changePhoto('camera');
       });
-    }
-    options.push({ text: 'Cancelar', style: 'cancel' });
-    Alert.alert('Foto de perfil', 'Escolhe uma opção', options);
   };
 
   const confirmLogout = () => {
-    Alert.alert('Terminar sessão', 'Tens a certeza que queres sair?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: logout },
-    ]);
+    feedback
+      .confirm({
+        title: 'Terminar sessão',
+        message: 'Tens a certeza que queres sair?',
+        confirmText: 'Sair',
+        cancelText: 'Cancelar',
+        danger: true,
+      })
+      .then((ok) => {
+        if (ok) logout();
+      });
   };
 
   return (

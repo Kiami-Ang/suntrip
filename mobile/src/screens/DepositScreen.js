@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Screen from '../components/Screen';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
+import { useFeedback } from '../context/FeedbackContext';
 import api, { errorMessage } from '../services/api';
 import { formatKz } from '../utils/format';
 import colors, { radius, spacing, font } from '../theme/colors';
 
 export default function DepositScreen({ navigation }) {
   const { patchUser } = useAuth();
+  const feedback = useFeedback();
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,11 +28,12 @@ export default function DepositScreen({ navigation }) {
     try {
       const { data } = await api.post('/wallet/redeem', { code: clean });
       patchUser({ balance: data.balance });
-      Alert.alert(
-        'Saldo carregado',
-        `Adicionaste ${formatKz(data.amount)}.\nNovo saldo: ${formatKz(data.balance)}`,
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+      feedback.showMoneyIn({
+        amount: Number(data.amount),
+        title: 'Saldo carregado',
+        message: `Adicionaste ${formatKz(data.amount)}.\nNovo saldo: ${formatKz(data.balance)}`,
+      });
+      navigation.goBack();
     } catch (err) {
       setError(errorMessage(err, 'Não foi possível recarregar'));
     } finally {

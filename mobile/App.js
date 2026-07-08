@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
 import { NotificationsProvider } from './src/context/NotificationsContext';
+import { FeedbackProvider } from './src/context/FeedbackContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import { wakeServer } from './src/services/api';
 
@@ -15,7 +16,9 @@ export default function App() {
     <SafeAreaProvider>
       <AuthProvider>
         <NotificationsProvider>
-          <RootNavigator />
+          <FeedbackProvider>
+            <RootNavigator />
+          </FeedbackProvider>
         </NotificationsProvider>
       </AuthProvider>
     </SafeAreaProvider>

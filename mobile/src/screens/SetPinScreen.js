@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Text, StyleSheet, Alert } from 'react-native';
+import { Text, StyleSheet } from 'react-native';
 import Screen from '../components/Screen';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
+import { useFeedback } from '../context/FeedbackContext';
 import api, { errorMessage } from '../services/api';
 import { validatePin } from '../utils/validation';
 import colors, { spacing, font } from '../theme/colors';
 
 export default function SetPinScreen({ navigation }) {
   const { user, refreshUser } = useAuth();
+  const feedback = useFeedback();
   const hasPin = !!user?.hasPin;
 
   const [currentPin, setCurrentPin] = useState('');
@@ -27,9 +29,8 @@ export default function SetPinScreen({ navigation }) {
     try {
       await api.post('/auth/pin', { pin, currentPin: hasPin ? currentPin : undefined });
       await refreshUser();
-      Alert.alert('PIN definido', 'O teu PIN de pagamento foi guardado.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      feedback.showSuccess('O teu PIN de pagamento foi guardado.', { title: 'PIN definido' });
+      navigation.goBack();
     } catch (err) {
       setError(errorMessage(err, 'Não foi possível guardar o PIN'));
     } finally {

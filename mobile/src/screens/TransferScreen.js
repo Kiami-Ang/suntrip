@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Screen from '../components/Screen';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { useAuth } from '../context/AuthContext';
+import { useFeedback } from '../context/FeedbackContext';
 import api, { errorMessage } from '../services/api';
 import { formatKz, initials } from '../utils/format';
 import colors, { radius, spacing, font } from '../theme/colors';
 
 export default function TransferScreen({ navigation }) {
   const { user, patchUser } = useAuth();
+  const feedback = useFeedback();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -49,9 +51,8 @@ export default function TransferScreen({ navigation }) {
         pin,
       });
       patchUser({ balance: data.balance });
-      Alert.alert('Transferência enviada', `Enviaste ${formatKz(value)} a ${recipient.name}.`, [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      feedback.showMoneyOut({ amount: value, to: recipient.name, title: 'Transferência enviada' });
+      navigation.goBack();
     } catch (err) {
       setError(errorMessage(err, 'Não foi possível transferir'));
     } finally {
@@ -61,10 +62,8 @@ export default function TransferScreen({ navigation }) {
 
   const onSubmit = () => {
     if (!user?.hasPin) {
-      Alert.alert('PIN necessário', 'Precisas de definir um PIN de pagamento primeiro.', [
-        { text: 'Definir PIN', onPress: () => navigation.navigate('SetPin') },
-        { text: 'Cancelar', style: 'cancel' },
-      ]);
+      feedback.showError('Precisas de definir um PIN de pagamento primeiro.', { title: 'PIN necessário' });
+      navigation.navigate('SetPin');
       return;
     }
     const value = Number(amount);
@@ -73,14 +72,16 @@ export default function TransferScreen({ navigation }) {
     setError('');
 
     // Confirmação com o nome do destinatário antes de enviar
-    Alert.alert(
-      'Confirmar transferência',
-      `Vais enviar ${formatKz(value)} a:\n\n${recipient.name}\n${recipient.phone}\n\nÉ a pessoa certa?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Sim, enviar', onPress: () => executeTransfer(value) },
-      ]
-    );
+    feedback
+      .confirm({
+        title: 'Confirmar transferência',
+        message: `Vais enviar ${formatKz(value)} a:\n\n${recipient.name}\n${recipient.phone}\n\nÉ a pessoa certa?`,
+        confirmText: 'Sim, enviar',
+        cancelText: 'Cancelar',
+      })
+      .then((ok) => {
+        if (ok) executeTransfer(value);
+      });
   };
 
   if (recipient) {

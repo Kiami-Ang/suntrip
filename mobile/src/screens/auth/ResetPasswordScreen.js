@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Screen from '../../components/Screen';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
+import { useFeedback } from '../../context/FeedbackContext';
 import { errorMessage } from '../../services/api';
 import { validateEmail } from '../../utils/validation';
 import colors, { radius, spacing, font } from '../../theme/colors';
 
 export default function ResetPasswordScreen({ route }) {
   const { resetPassword, forgotPassword } = useAuth();
+  const feedback = useFeedback();
   const initialEmail = route.params?.email || '';
   const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState('');
@@ -50,9 +52,9 @@ export default function ResetPasswordScreen({ route }) {
     setResending(true);
     try {
       await forgotPassword(em.value);
-      Alert.alert('Código enviado', 'Verifica o teu email (e a pasta de spam).');
+      feedback.showSuccess('Verifica o teu email (e a pasta de spam).', { title: 'Código enviado' });
     } catch (err) {
-      Alert.alert('Erro', errorMessage(err, 'Não foi possível reenviar'));
+      feedback.showError(errorMessage(err, 'Não foi possível reenviar'), { title: 'Erro' });
     } finally {
       setResending(false);
     }

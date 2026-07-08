@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,12 +7,14 @@ import Screen from '../../components/Screen';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
+import { useFeedback } from '../../context/FeedbackContext';
 import api, { errorMessage } from '../../services/api';
 import { formatKz } from '../../utils/format';
 import colors, { radius, spacing, font } from '../../theme/colors';
 
 export default function QrScanScreen({ navigation, route }) {
   const { user, patchUser } = useAuth();
+  const feedback = useFeedback();
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
@@ -52,7 +54,8 @@ export default function QrScanScreen({ navigation, route }) {
       if (manualMode) {
         setError(msg);
       } else {
-        Alert.alert('QR inválido', msg, [{ text: 'Tentar de novo', onPress: () => setScanned(false) }]);
+        feedback.showError(msg, { title: 'QR inválido' });
+        setScanned(false);
       }
     } finally {
       setVerifying(false);
@@ -74,10 +77,8 @@ export default function QrScanScreen({ navigation, route }) {
 
   const onPay = async () => {
     if (!user?.hasPin) {
-      Alert.alert('PIN necessário', 'Precisas de definir um PIN de pagamento primeiro.', [
-        { text: 'Definir PIN', onPress: () => navigation.navigate('SetPin') },
-        { text: 'Cancelar', style: 'cancel' },
-      ]);
+      feedback.showError('Precisas de definir um PIN de pagamento primeiro.', { title: 'PIN necessário' });
+      navigation.navigate('SetPin');
       return;
     }
     if (!/^\d{4,6}$/.test(pin)) return setError('PIN deve ter 4 a 6 dígitos');
@@ -86,9 +87,8 @@ export default function QrScanScreen({ navigation, route }) {
     try {
       const { data } = await api.post('/qr/pay', { code: payment.code, pin });
       patchUser({ balance: data.balance });
-      Alert.alert('Pagamento efectuado', `Pagaste ${formatKz(data.amount)} a ${data.payee}.`, [
-        { text: 'OK', onPress: () => navigation.navigate('Main') },
-      ]);
+      feedback.showMoneyOut({ amount: Number(data.amount), to: data.payee, title: 'Pagamento efectuado' });
+      navigation.navigate('Main');
     } catch (err) {
       setError(errorMessage(err, 'Não foi possível pagar'));
     } finally {

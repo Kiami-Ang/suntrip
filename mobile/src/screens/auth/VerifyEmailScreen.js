@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Screen from '../../components/Screen';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
+import { useFeedback } from '../../context/FeedbackContext';
 import { errorMessage } from '../../services/api';
 import colors, { radius, spacing, font } from '../../theme/colors';
 
 export default function VerifyEmailScreen() {
   const { user, verifyEmail, resendCode, logout } = useAuth();
+  const feedback = useFeedback();
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,9 +37,9 @@ export default function VerifyEmailScreen() {
     setResending(true);
     try {
       await resendCode();
-      Alert.alert('Código enviado', 'Verifica o teu email (e a pasta de spam).');
+      feedback.showSuccess('Verifica o teu email (e a pasta de spam).', { title: 'Código enviado' });
     } catch (err) {
-      Alert.alert('Erro', errorMessage(err, 'Não foi possível reenviar'));
+      feedback.showError(errorMessage(err, 'Não foi possível reenviar'), { title: 'Erro' });
     } finally {
       setResending(false);
     }

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import Screen from '../components/Screen';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import { useFeedback } from '../context/FeedbackContext';
 import api, { errorMessage } from '../services/api';
 import { formatKz } from '../utils/format';
 import colors, { radius, spacing, font } from '../theme/colors';
@@ -12,6 +13,7 @@ import colors, { radius, spacing, font } from '../theme/colors';
 const PRESETS = [500, 1000, 2000, 5000, 10000];
 
 export default function AdminVouchersScreen() {
+  const feedback = useFeedback();
   const [amount, setAmount] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [error, setError] = useState('');
@@ -37,13 +39,13 @@ export default function AdminVouchersScreen() {
 
   const copy = async (text) => {
     await Clipboard.setStringAsync(text);
-    Alert.alert('Copiado', 'Código copiado para a área de transferência.');
+    feedback.showSuccess('Código copiado para a área de transferência.', { title: 'Copiado' });
   };
 
   const copyAll = async () => {
     const text = vouchers.map((v) => `${v.code}  —  ${formatKz(v.amount)}`).join('\n');
     await Clipboard.setStringAsync(text);
-    Alert.alert('Copiado', 'Todos os códigos foram copiados.');
+    feedback.showSuccess('Todos os códigos foram copiados.', { title: 'Copiado' });
   };
 
   return (
