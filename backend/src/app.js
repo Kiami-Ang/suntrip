@@ -13,6 +13,7 @@ const transactionRoutes = require('./routes/transactions.routes');
 const userRoutes = require('./routes/users.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const notificationRoutes = require('./routes/notifications.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

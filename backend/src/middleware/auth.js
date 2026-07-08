@@ -11,7 +11,14 @@ async function auth(req, _res, next) {
     const decoded = verifyAccessToken(token);
     const user = await User.findById(decoded.id);
     if (!user) throw new AppError('Utilizador não encontrado', 401);
-    if (user.status === 'blocked') throw new AppError('Conta bloqueada', 403);
+    await user.clearExpiredBan();
+    if (user.isCurrentlyBlocked()) {
+      const msg =
+        user.banType === 'temporary' && user.blockedUntil
+          ? `Conta suspensa até ${user.blockedUntil.toISOString().slice(0, 16).replace('T', ' ')} UTC`
+          : 'Conta bloqueada permanentemente';
+      throw new AppError(user.banReason ? `${msg}. Motivo: ${user.banReason}` : msg, 403);
+    }
 
     req.user = user;
     next();

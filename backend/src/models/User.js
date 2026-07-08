@@ -14,7 +14,13 @@ const userSchema = new mongoose.Schema(
 
     userType: { type: String, enum: ['client', 'driver', 'business'], default: 'client' },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
-    status: { type: String, enum: ['active', 'blocked'], default: 'active' },
+    // active = normal; blocked = banido (temporário se blockedUntil futuro, permanente se null)
+    status: { type: String, enum: ['active', 'blocked'], default: 'active', index: true },
+    banType: { type: String, enum: ['none', 'temporary', 'permanent'], default: 'none' },
+    blockedUntil: { type: Date, default: null },
+    banReason: { type: String, default: '' },
+    bannedAt: { type: Date, default: null },
+    bannedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 
     // Verificação de email real (código de 6 dígitos enviado por email)
     emailVerified: { type: Boolean, default: false },
@@ -84,7 +90,37 @@ userSchema.methods.generateResetCode = function generateResetCode() {
   return code;
 };
 
+/** Conta está bloqueada neste momento? (auto-liberta ban temporário expirado) */
+userSchema.methods.isCurrentlyBlocked = function isCurrentlyBlocked() {
+  if (this.status !== 'blocked') return false;
+  if (this.banType === 'temporary' && this.blockedUntil && this.blockedUntil <= new Date()) {
+    return false;
+  }
+  return true;
+};
+
+/** Liberta ban temporário expirado (persiste se tiver mudado). */
+userSchema.methods.clearExpiredBan = async function clearExpiredBan() {
+  if (
+    this.status === 'blocked' &&
+    this.banType === 'temporary' &&
+    this.blockedUntil &&
+    this.blockedUntil <= new Date()
+  ) {
+    this.status = 'active';
+    this.banType = 'none';
+    this.blockedUntil = null;
+    this.banReason = '';
+    this.bannedAt = null;
+    this.bannedBy = null;
+    await this.save();
+    return true;
+  }
+  return false;
+};
+
 userSchema.methods.toPublic = function toPublic() {
+  const blocked = this.isCurrentlyBlocked();
   return {
     id: this._id.toString(),
     name: this.name,
@@ -92,7 +128,11 @@ userSchema.methods.toPublic = function toPublic() {
     phone: this.phone,
     userType: this.userType,
     role: this.role,
-    status: this.status,
+    status: blocked ? 'blocked' : 'active',
+    banType: blocked ? this.banType : 'none',
+    blockedUntil: blocked ? this.blockedUntil : null,
+    banReason: blocked ? this.banReason : '',
+    bannedAt: blocked ? this.bannedAt : null,
     balance: toKz(this.balanceCents),
     balanceCents: this.balanceCents,
     hasPin: Boolean(this.pinHash),
@@ -107,6 +147,7 @@ userSchema.methods.toPublic = function toPublic() {
     businessName: this.businessName,
     businessNif: this.businessNif,
     businessCategory: this.businessCategory,
+    lastActiveAt: this.lastActiveAt,
     createdAt: this.createdAt,
   };
 };

@@ -115,7 +115,14 @@ router.post(
     if (!user || !(await user.comparePassword(data.password))) {
       throw new AppError('Email ou palavra-passe incorrectos', 401);
     }
-    if (user.status === 'blocked') throw new AppError('Conta bloqueada', 403);
+    await user.clearExpiredBan();
+    if (user.isCurrentlyBlocked()) {
+      const msg =
+        user.banType === 'temporary' && user.blockedUntil
+          ? `Conta suspensa até ${user.blockedUntil.toISOString().slice(0, 16).replace('T', ' ')} UTC`
+          : 'Conta bloqueada permanentemente';
+      throw new AppError(user.banReason ? `${msg}. Motivo: ${user.banReason}` : msg, 403);
+    }
 
     user.lastActiveAt = new Date();
     await user.save();

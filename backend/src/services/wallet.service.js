@@ -92,9 +92,27 @@ async function transfer({ sender, recipientId, amountCents, type = 'transfer', d
       );
       if (!debited) throw new AppError('Saldo insuficiente', 400);
 
-      // Crédito ao destinatário
+      // Crédito ao destinatário (só se a conta estiver activa)
+      let recipientDoc = await User.findById(recipientId).session(session);
+      if (!recipientDoc) throw new AppError('Destinatário indisponível', 400);
+      if (
+        recipientDoc.status === 'blocked' &&
+        recipientDoc.banType === 'temporary' &&
+        recipientDoc.blockedUntil &&
+        recipientDoc.blockedUntil <= new Date()
+      ) {
+        recipientDoc.status = 'active';
+        recipientDoc.banType = 'none';
+        recipientDoc.blockedUntil = null;
+        recipientDoc.banReason = '';
+        recipientDoc.bannedAt = null;
+        recipientDoc.bannedBy = null;
+        await recipientDoc.save({ session });
+      }
+      if (recipientDoc.status === 'blocked') throw new AppError('Destinatário indisponível', 400);
+
       const recipient = await User.findOneAndUpdate(
-        { _id: recipientId, status: { $ne: 'blocked' } },
+        { _id: recipientId, status: 'active' },
         { $inc: { balanceCents: amountCents } },
         { new: true, session }
       );
@@ -224,4 +242,57 @@ async function redeemVoucher(user, rawCode) {
   }
 }
 
-module.exports = { deposit, transfer, findByReference, generateVouchers, redeemVoucher };
+/**
+ * Ajuste manual de saldo por administrador (crédito ou débito).
+ * deltaCents positivo = acrescenta; negativo = retira (sem ficar negativo).
+ */
+async function adjustBalance(userId, deltaCents, { description, adminId } = {}) {
+  const amount = Math.abs(Number(deltaCents) || 0);
+  if (!amount) throw new AppError('Valor inválido', 400);
+
+  const session = await mongoose.startSession();
+  try {
+    let out;
+    await session.withTransaction(async () => {
+      let updated;
+      if (deltaCents > 0) {
+        updated = await User.findByIdAndUpdate(
+          userId,
+          { $inc: { balanceCents: amount } },
+          { new: true, session }
+        );
+      } else {
+        updated = await User.findOneAndUpdate(
+          { _id: userId, balanceCents: { $gte: amount } },
+          { $inc: { balanceCents: -amount } },
+          { new: true, session }
+        );
+        if (!updated) throw new AppError('Saldo insuficiente para o débito', 400);
+      }
+      if (!updated) throw new AppError('Utilizador não encontrado', 404);
+
+      const [tx] = await Transaction.create(
+        [
+          {
+            userId,
+            type: 'admin_adjust',
+            direction: deltaCents > 0 ? 'credit' : 'debit',
+            amountCents: amount,
+            balanceAfterCents: updated.balanceCents,
+            status: 'completed',
+            description: description || (deltaCents > 0 ? 'Crédito administrativo' : 'Débito administrativo'),
+            metadata: { adminId: adminId ? String(adminId) : null },
+          },
+        ],
+        { session }
+      );
+
+      out = { transaction: tx, balanceCents: updated.balanceCents, user: updated };
+    });
+    return out;
+  } finally {
+    session.endSession();
+  }
+}
+
+module.exports = { deposit, transfer, findByReference, generateVouchers, redeemVoucher, adjustBalance };

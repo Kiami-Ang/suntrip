@@ -20,6 +20,8 @@ export const txTypeLabel = {
   deposit: 'Carregamento',
   transfer: 'Transferência',
   qr_payment: 'Pagamento QR',
+  voucher: 'Recarga voucher',
+  admin_adjust: 'Ajuste admin',
 };
 
 // Estado apresentado ao utilizador (profissional)
